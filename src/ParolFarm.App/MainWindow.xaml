@@ -377,10 +377,139 @@
 
             <!-- ===================== Druckfarm ===================== -->
             <TabItem Header="  Druckfarm  ">
-                <TextBlock Margin="20" FontSize="15" TextWrapping="Wrap" Foreground="#555">
-                    Phase 2: Bambu-Lab-Drucker im LAN-Modus (MQTT), Druckwarteschlange, Release-Temperatur,
-                    automatisches Abräumen mit dem PAROL6.
-                </TextBlock>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="380" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Margin="4">
+                        <Button Content="▶ Farm starten" Command="{Binding StartFarmCommand}" FontWeight="Bold" Background="#C8E6C9" Height="36" />
+                        <Button Content="■ Farm anhalten" Command="{Binding StopFarmCommand}" FontWeight="Bold" Height="36" />
+                        <Border Style="{StaticResource Lamp}" VerticalAlignment="Center" Background="{Binding FarmRunning, Converter={StaticResource OkBrush}}">
+                            <TextBlock Style="{StaticResource LampText}" Text="Farm läuft" />
+                        </Border>
+                        <TextBlock VerticalAlignment="Center" Margin="10,0" Foreground="#555" TextWrapping="Wrap" MaxWidth="700"
+                                   Text="Angehalten: keine neuen Drucke und keine automatische Entnahme. Laufende Drucke laufen weiter." />
+                    </StackPanel>
+
+                    <!-- Druckerübersicht -->
+                    <GroupBox Grid.Row="1" Header="Drucker">
+                        <DockPanel>
+                            <WrapPanel DockPanel.Dock="Bottom">
+                                <Button Content="Platte ist leer" Command="{Binding ConfirmPlateEmptyCommand}" FontWeight="SemiBold" />
+                                <Button Content="Jetzt abräumen (Roboter)" Command="{Binding RemoveNowCommand}" />
+                                <Button Content="Fehler quittieren" Command="{Binding AcknowledgeFarmErrorCommand}" />
+                                <Button Content="Bett-G-Code testen" Command="{Binding TestBedGcodeCommand}" />
+                                <Button Content="Druck abbrechen" Command="{Binding StopPrintCommand}" Background="#FFCDD2" />
+                            </WrapPanel>
+                            <DataGrid ItemsSource="{Binding PrinterRows}" SelectedItem="{Binding SelectedPrinterRow}" AutoGenerateColumns="False"
+                                      IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single" GridLinesVisibility="Horizontal" CanUserAddRows="False">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsError}" Value="True"><Setter Property="Background" Value="#FFEBEE" /></DataTrigger>
+                                            <DataTrigger Binding="{Binding NeedsAction}" Value="True"><Setter Property="Background" Value="#FFF8E1" /></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Drucker" Binding="{Binding Name}" Width="110" />
+                                    <DataGridTextColumn Header="Farm" Binding="{Binding State}" Width="120" FontWeight="SemiBold" />
+                                    <DataGridTextColumn Header="Drucker-Status" Binding="{Binding PrinterState}" Width="100" />
+                                    <DataGridTextColumn Header="Bett" Binding="{Binding Bed}" Width="70" />
+                                    <DataGridTextColumn Header="Auftrag" Binding="{Binding Job}" Width="150" />
+                                    <DataGridTextColumn Header="Meldung" Binding="{Binding Message}" Width="*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </GroupBox>
+
+                    <!-- Aufträge -->
+                    <GroupBox Grid.Row="2" Header="Aufträge (werden von oben nach unten abgearbeitet)">
+                        <DockPanel>
+                            <WrapPanel DockPanel.Dock="Bottom" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource Label}" Text="Platte" />
+                                <TextBox Width="36" Text="{Binding NewJobPlate}" />
+                                <TextBlock Style="{StaticResource Label}" Text="Stück" />
+                                <TextBox Width="46" Text="{Binding NewJobQuantity}" />
+                                <TextBlock Style="{StaticResource Label}" Text="Drucker" />
+                                <ComboBox Width="150" Margin="3" ItemsSource="{Binding PrinterChoices}" SelectedItem="{Binding NewJobPrinter}" />
+                                <CheckBox Content="AMS" IsChecked="{Binding NewJobUseAms}" />
+                                <CheckBox Content="Bettnivellierung" IsChecked="{Binding NewJobBedLeveling}" />
+                                <Button Content="＋ Datei hinzufügen…" Command="{Binding AddJobCommand}" FontWeight="SemiBold" />
+                                <Button Content="▲" Command="{Binding JobUpCommand}" />
+                                <Button Content="▼" Command="{Binding JobDownCommand}" />
+                                <Button Content="Entfernen" Command="{Binding RemoveJobCommand}" />
+                            </WrapPanel>
+                            <DataGrid ItemsSource="{Binding JobRows}" SelectedItem="{Binding SelectedJob}" AutoGenerateColumns="False"
+                                      IsReadOnly="True" HeadersVisibility="Column" SelectionMode="Single" GridLinesVisibility="Horizontal" CanUserAddRows="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Datei" Binding="{Binding FileName}" Width="*" />
+                                    <DataGridTextColumn Header="Platte" Binding="{Binding Plate}" Width="55" />
+                                    <DataGridTextColumn Header="Fertig" Binding="{Binding Progress}" Width="140" />
+                                    <DataGridTextColumn Header="Drucker" Binding="{Binding Printer}" Width="110" />
+                                    <DataGridTextColumn Header="Optionen" Binding="{Binding Options}" Width="190" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </GroupBox>
+
+                    <!-- Druckereinstellungen -->
+                    <GroupBox Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" Header="Drucker einrichten">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="Neu" Command="{Binding NewPrinterCommand}" />
+                                    <ComboBox Margin="3" ItemsSource="{Binding PrinterConfigs}" SelectedItem="{Binding SelectedPrinterConfig}" DisplayMemberPath="Name" />
+                                </DockPanel>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="135" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                                        <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Style="{StaticResource Label}" Text="Name" />
+                                    <TextBox Grid.Column="1" Text="{Binding EdName}" />
+                                    <TextBlock Style="{StaticResource Label}" Grid.Row="1" Text="Modell" />
+                                    <ComboBox Grid.Row="1" Grid.Column="1" Margin="3" ItemsSource="{Binding PrinterKinds}" SelectedItem="{Binding EdKind}" />
+                                    <TextBlock Style="{StaticResource Label}" Grid.Row="2" Text="IP-Adresse" />
+                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EdHost}" />
+                                    <TextBlock Style="{StaticResource Label}" Grid.Row="3" Text="Seriennummer" />
+                                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding EdSerial}" />
+                                    <TextBlock Style="{StaticResource Label}" Grid.Row="4" Text="Zugangscode (LAN)" />
+                                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding EdAccessCode}" />
+                                    <CheckBox Grid.Row="5" Grid.ColumnSpan="2" Content="Aktiv (in der Farm verwenden)" IsChecked="{Binding EdEnabled}" />
+                                    <CheckBox Grid.Row="6" Grid.ColumnSpan="2" Content="Wird vom PAROL6 abgeräumt" IsChecked="{Binding EdHasRobot}" FontWeight="SemiBold" />
+                                    <TextBlock Style="{StaticResource Label}" Grid.Row="7" Text="Entnahme-Programm" />
+                                    <ComboBox Grid.Row="7" Grid.Column="1" Margin="3" ItemsSource="{Binding ProgramNames}" SelectedItem="{Binding EdRemovalProgram}"
+                                              IsEnabled="{Binding EdHasRobot}" />
+                                    <TextBlock Style="{StaticResource Label}" Grid.Row="8" Text="Release-Temp. (°C)" />
+                                    <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding EdReleaseTemp}" />
+                                    <TextBlock Style="{StaticResource Label}" Grid.Row="9" Text="Bett-G-Code" VerticalAlignment="Top" />
+                                    <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding EdBedGcode}" AcceptsReturn="True" Height="60"
+                                             FontFamily="Consolas" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" />
+                                    <TextBlock Style="{StaticResource Label}" Grid.Row="10" Text="Warten danach (s)" />
+                                    <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding EdBedWait}" />
+                                </Grid>
+                                <UniformGrid Columns="2">
+                                    <Button Content="Speichern &amp; verbinden" Command="{Binding SavePrinterCommand}" FontWeight="SemiBold" />
+                                    <Button Content="Löschen" Command="{Binding DeletePrinterCommand}" />
+                                </UniformGrid>
+                                <TextBlock TextWrapping="Wrap" Foreground="#555" Margin="3,8">
+                                    Am Drucker: LAN-Modus und Entwicklermodus einschalten. IP, Seriennummer und Zugangscode stehen im
+                                    Netzwerk-Menü des Druckers. Die Daten bleiben nur auf diesem PC (%APPDATA%\ParolFarm\farm.json).
+                                    Modell „Simulation“ testet die Farm ohne Drucker.
+                                </TextBlock>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </GroupBox>
+                </Grid>
             </TabItem>
         </TabControl>
     </DockPanel>

@@ -160,6 +160,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SelectedPort = Settings.ComPort != null && Ports.Contains(Settings.ComPort) ? Settings.ComPort : Ports.FirstOrDefault();
         RebuildWaypoints();
         RebuildPrograms();
+        InitFarm();
 
         _statusTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Background, (_, _) => UpdateStatus(), _ui);
         _jogTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(20), DispatcherPriority.Input, (_, _) => JogTick(), _ui);
@@ -484,6 +485,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var sel = SelectedProgram?.Model;
         Programs.Clear();
         foreach (var p in _project.Programs) Programs.Add(new ProgramItem(p));
+        RebuildProgramNames();
         SelectedProgram = Programs.FirstOrDefault(p => p.Model == sel) ?? Programs.FirstOrDefault();
     }
 
@@ -531,6 +533,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SelectedProgram.Model.Name = ProgramName.Trim();
         SelectedProgram.Refresh();
         SaveProject();
+        RebuildProgramNames();
     }
 
     [RelayCommand]
@@ -704,6 +707,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _statusTimer.Stop();
         _jogTimer.Stop();
         _programCts?.Cancel();
+        _farmTimer?.Stop();
+        try { _farm?.DisposeAsync().AsTask().Wait(3000); } catch { }
         _robot.Dispose();
         _spaceMouse?.Dispose();
         try { Settings.Save(); } catch { }

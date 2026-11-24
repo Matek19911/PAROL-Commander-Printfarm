@@ -4,8 +4,8 @@ Windows-Programm, mit dem ein **PAROL6**-Roboterarm gedruckte Teile aus Bambu-La
 Das Fernziel ist eine Druckfarm-Software, die Druckaufträge startet, auf Druckende und
 Release-Temperatur wartet und den Drucker mit dem Roboter abräumt.
 
-> **Status: Phase 1.** Enthalten sind Roboteransteuerung, Kinematik, Teachen mit SpaceMouse und
-> einfache Programme. Die Anbindung der Drucker (Phase 2) fehlt noch.
+> **Status:** Phase 1 (Roboter, Teachen, Programme) und eine erste Version von Phase 2 (Druckfarm
+> mit Bambu-Lab-Anbindung) sind fertig. Beides ist noch nicht an echter Hardware getestet.
 
 ## Programm herunterladen
 
@@ -42,6 +42,23 @@ Einstellungen, Punkte und Programme liegen unter `%APPDATA%\ParolFarm\`.
   Fokus oder bleiben Eingaben länger als 250 ms aus, stoppt er.
 - Achsrichtung, Totzone, Kennlinie und der Modus *dominante Achse* sind unter
   *Einstellungen* einstellbar.
+
+### Druckfarm (Reiter *Druckfarm*)
+
+1. **Drucker einrichten:** Am Drucker den LAN-Modus und den Entwicklermodus einschalten.
+   Dann IP-Adresse, Seriennummer und Zugangscode eintragen und die Option
+   *Wird vom PAROL6 abgeräumt* sowie das *Entnahme-Programm* wählen.
+2. **Druckdatei:** In Bambu Studio slicen und über *Datei → Exportieren → Plattengeslicete Datei*
+   eine `.3mf` erzeugen. Diese im Reiter *Druckfarm* mit Platte und Stückzahl als Auftrag hinzufügen.
+3. **Farm starten.** Nach jedem Programmstart fragt die Farm zuerst, ob die Platte leer ist.
+   Ohne diese Bestätigung startet kein Druck.
+
+Ablauf pro Druck: Datei per FTPS hochladen (nur beim ersten Mal) → Druck per MQTT starten → Druckende
+→ Bett-G-Code (Bett nach unten) → warten, bis die Betttemperatur die Release-Temperatur erreicht →
+Entnahme-Programm des Roboters → nächster Druck.
+Drucker ohne Roboter warten nach dem Druck auf die Bestätigung *Platte ist leer*.
+
+Die Farm-Daten (inklusive Zugangscodes) liegen nur lokal unter `%APPDATA%\ParolFarm\farm.json`.
 
 ### Hinweis: Singularität in der Standby-Pose
 
@@ -82,9 +99,9 @@ dotnet publish src/ParolFarm.App -c Release -r win-x64 --self-contained true -p:
 ## Fahrplan
 
 - [x] Phase 1: Robotertreiber, Kinematik, SpaceMouse-Teachen, Programme, Simulation
-- [ ] Phase 2: Bambu-Lab-Anbindung (LAN-Modus, MQTT und FTPS): Status, Release-Temperatur pro Drucker,
-      Bett nach unten fahren, Druck hochladen und starten
-- [ ] Phase 3: Druckfarm mit Warteschlange und Stückzahlen. Pro Drucker einstellbar, ob ein PAROL6 abräumt.
+- [x] Phase 2: Bambu-Lab-Anbindung (LAN-Modus, MQTT und FTPS), Release-Temperatur, Bett-G-Code,
+      Warteschlange mit Stückzahlen, pro Drucker einstellbar, ob ein PAROL6 abräumt (noch ungetestet an Hardware)
+- [ ] Phase 3: Tests an X2D, P2S und P1P, Feinschliff, eventuell Kamera-Prüfung, ob die Platte leer ist
 
 ## Lizenz
 

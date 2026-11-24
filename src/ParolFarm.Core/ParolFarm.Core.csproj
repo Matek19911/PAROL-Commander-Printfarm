@@ -6,6 +6,8 @@
     <RootNamespace>ParolFarm.Core</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="FluentFTP" Version="52.1.0" />
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
   </ItemGroup>
 </Project>
